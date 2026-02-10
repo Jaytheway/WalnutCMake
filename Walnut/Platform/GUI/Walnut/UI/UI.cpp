@@ -158,7 +158,7 @@ namespace Walnut::UI {
 		}
 		if (g.Style.FrameBorderSize > 0 && !(window->Flags & ImGuiWindowFlags_NoTitleBar) && !window->DockIsActive)
 		{
-			float y = window->Pos.y + window->TitleBarHeight() - 1;
+			float y = window->Pos.y + window->TitleBarHeight - 1;
 			window->DrawList->AddLine(ImVec2(window->Pos.x + border_size, y), ImVec2(window->Pos.x + window->Size.x - border_size, y), ImGui::GetColorU32(ImGuiCol_Border), g.Style.FrameBorderSize);
 		}
 	}
@@ -171,7 +171,7 @@ namespace Walnut::UI {
 		{
 			ImGuiContext& g = *GImGui;
 			ImVec2 new_size = size_desired;
-			if (g.NextWindowData.Flags & ImGuiNextWindowDataFlags_HasSizeConstraint)
+			if (g.NextWindowData.HasFlags & ImGuiNextWindowDataFlags_HasSizeConstraint)
 			{
 				// Using -1,-1 on either X/Y axis to preserve the current size.
 				ImRect cr = g.NextWindowData.SizeConstraintRect;
@@ -195,7 +195,7 @@ namespace Walnut::UI {
 			if (!(window->Flags & (ImGuiWindowFlags_ChildWindow | ImGuiWindowFlags_AlwaysAutoResize)))
 			{
 				ImGuiWindow* window_for_height = (window->DockNodeAsHost && window->DockNodeAsHost->VisibleWindow) ? window->DockNodeAsHost->VisibleWindow : window;
-				const float decoration_up_height = window_for_height->TitleBarHeight() + window_for_height->MenuBarHeight();
+				const float decoration_up_height = window_for_height->TitleBarHeight + window_for_height->MenuBarHeight;
 				new_size = ImMax(new_size, g.Style.WindowMinSize);
 				new_size.y = ImMax(new_size.y, decoration_up_height + ImMax(0.0f, g.Style.WindowRounding - 1.0f)); // Reduce artifacts with very small windows
 			}
@@ -206,7 +206,7 @@ namespace Walnut::UI {
 		{
 			ImGuiContext& g = *GImGui;
 			ImGuiStyle& style = g.Style;
-			const float decoration_up_height = window->TitleBarHeight() + window->MenuBarHeight();
+			const float decoration_up_height = window->TitleBarHeight + window->MenuBarHeight;
 			ImVec2 size_pad{ window->WindowPadding.x * 2.0f, window->WindowPadding.y * 2.0f };
 			ImVec2 size_desired = { size_contents.x + size_pad.x + 0.0f, size_contents.y + size_pad.y + decoration_up_height };
 			if (window->Flags & ImGuiWindowFlags_Tooltip)
@@ -519,8 +519,8 @@ namespace Walnut::UI {
 				IM_ASSERT(window->DC.NavLayersActiveMaskNext & (1 << layer)); // Sanity check
 				ImGui::FocusWindow(window);
 				ImGui::SetNavID(window->NavLastIds[layer], layer, 0, window->NavRectRel[layer]);
-				g.NavDisableHighlight = true; // Hide highlight for the current frame so we don't see the intermediary selection.
-				g.NavDisableMouseHover = g.NavMousePosDirty = true;
+				g.NavCursorVisible = false; // Hide highlight for the current frame so we don't see the intermediary selection.
+				g.NavHighlightItemUnderNav = g.NavMousePosDirty = true;
 				ImGui::NavMoveRequestForward(g.NavMoveDir, g.NavMoveClipDir, g.NavMoveFlags, g.NavMoveScrollFlags); // Repeat
 			}
 		}
