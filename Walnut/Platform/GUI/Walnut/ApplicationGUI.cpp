@@ -14,8 +14,12 @@
 
 #include <stdio.h>          // printf, fprintf
 #include <stdlib.h>         // abort
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
+#ifndef GLFW_INCLUDE_NONE
+	#define GLFW_INCLUDE_NONE
+#endif // !GLFW_INCLUDE_NONE
+#ifndef GLFW_INCLUDE_VULKAN
+	#define GLFW_INCLUDE_VULKAN
+#endif // !GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
