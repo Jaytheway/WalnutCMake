@@ -41,6 +41,11 @@ namespace Walnut::UI {
 			constexpr auto missingMesh = IM_COL32(230, 102, 76, 255);
 			constexpr auto meshNotSet = IM_COL32(250, 101, 23, 255);
 		}
+
+
+		// ImGui for some reasong overrides ImGuiCol_Separator color to use ImGuiCol_Border when drawing dockspace splitter
+		// which can be inconvenient in some cases, so we'll expose customization for our override of ImGui's overide
+		inline ImU32 dockspaceSplitterColor = Theme::background;
 	}
 
 	namespace Colors

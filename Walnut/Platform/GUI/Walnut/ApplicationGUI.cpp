@@ -957,12 +957,14 @@ namespace Walnut {
 				}
 
 				// Dockspace
-				ImGuiIO& io = ImGui::GetIO();
-				ImGuiStyle& style = ImGui::GetStyle();
-				float minWinSizeX = style.WindowMinSize.x;
-				style.WindowMinSize.x = 370.0f;
-				ImGui::DockSpace(ImGui::GetID("MyDockspace"));
-				style.WindowMinSize.x = minWinSizeX;
+				
+				// ImGui for some reasong overrides ImGuiCol_Separator color to use ImGuiCol_Border when drawing dockspace splitter
+				// which can be inconvenient in some cases, so we'll override ImGuiCol_Border here to allow customization
+				ImGui::PushStyleColor(ImGuiCol_Border, UI::Colors::dockspaceSplitterColor);
+				{
+					ImGui::DockSpace(ImGui::GetID("MyDockspace"));
+				}
+				ImGui::PopStyleColor();
 
 				if (!m_Specification.CustomTitlebar)
 					UI_DrawMenubar();
