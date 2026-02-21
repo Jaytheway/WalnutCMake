@@ -29,6 +29,7 @@
 #include "stb_image.h"
 
 #include <iostream>
+#include <cmath>
 
 // Emedded font
 #include "ImGui/Roboto-Regular.embed"
@@ -492,7 +493,18 @@ namespace Walnut {
 			std::string iconPathStr = m_Specification.IconPath.string();
 			icon.pixels = stbi_load(iconPathStr.c_str(), &icon.width, &icon.height, &channels, 4);
 			glfwSetWindowIcon(m_WindowHandle, 1, &icon);
+			glfwPollEvents(); // this is necessary for GLFW to be able to set the icon for the taskbar as well
 			stbi_image_free(icon.pixels);
+		}
+		else if (!m_Specification.IconData.empty())
+		{
+			const uint32_t size = static_cast<uint32_t>(std::sqrt(m_Specification.IconData.size()));
+			icon.width = size;
+			icon.height = size;
+			// glfw won't modify the data, it should be save to const cast
+			icon.pixels = const_cast<unsigned char*>(m_Specification.IconData.data());
+			glfwSetWindowIcon(m_WindowHandle, 1, &icon);
+			glfwPollEvents(); // this is necessary for GLFW to be able to set the icon for the taskbar as well
 		}
 
 		glfwSetWindowUserPointer(m_WindowHandle, this);
@@ -523,7 +535,22 @@ namespace Walnut {
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		// Set the settings file name
+		if (!m_Specification.SettingsFile.empty())
+		{
+			io.IniFilename = m_Specification.SettingsFile.c_str();
+		}
+
+		// If settings file does not exist yet,
+		// load the default settings if provided
+		if (!std::filesystem::exists(io.IniFilename) && m_Specification.DefaultSettingsData)
+		{
+			ImGui::LoadIniSettingsFromMemory(m_Specification.DefaultSettingsData);
+		}
+
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
@@ -701,6 +728,11 @@ namespace Walnut {
 		// fgDrawList->AddRect(titlebarMin, titlebarMax, UI::Colors::Theme::invalidPrefab);
 
 		// Logo
+		if (m_DrawLogoCallback)
+		{
+			m_DrawLogoCallback(titlebarMin, titlebarMax);
+		}
+		else
 		{
 			const int logoWidth = 48;// m_LogoTex->GetWidth();
 			const int logoHeight = 48;// m_LogoTex->GetHeight();
@@ -760,69 +792,66 @@ namespace Walnut {
 		}
 
 		// Window buttons
-		const ImU32 buttonColN = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::text, 0.9f);
-		const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::text, 1.2f);
-		const ImU32 buttonColP = UI::Colors::Theme::textDarker;
-		const float buttonWidth = 14.0f;
-		const float buttonHeight = 14.0f;
-
-		// Minimize Button
-
-		ImGui::Spring();
-		UI::ShiftCursorY(8.0f);
+		if (m_DrawWindowButtonsCallback)
 		{
-			const int iconWidth = m_IconMinimize->GetWidth();
-			const int iconHeight = m_IconMinimize->GetHeight();
-			const float padY = (buttonHeight - (float)iconHeight) / 2.0f;
-			if (ImGui::InvisibleButton("Minimize", ImVec2(buttonWidth, buttonHeight)))
+			m_DrawWindowButtonsCallback(titlebarMin, titlebarMax);
+		}
+		else
+		{
+			const ImU32 buttonColN = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::text, 0.9f);
+			const ImU32 buttonColH = UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::text, 1.2f);
+			const ImU32 buttonColP = UI::Colors::Theme::textDarker;
+			const float buttonWidth = 14.0f;
+			const float buttonHeight = 14.0f;
+
+			// Minimize Button
+
+			ImGui::Spring();
+			UI::ShiftCursorY(8.0f);
 			{
-				// TODO: move this stuff to a better place, like Window class
-				if (m_WindowHandle)
+				const int iconWidth = m_IconMinimize->GetWidth();
+				const int iconHeight = m_IconMinimize->GetHeight();
+				const float padY = (buttonHeight - (float)iconHeight) / 2.0f;
+				if (ImGui::InvisibleButton("Minimize", ImVec2(buttonWidth, buttonHeight)))
 				{
-					Application::Get().QueueEvent([windowHandle = m_WindowHandle]() { glfwIconifyWindow(windowHandle); });
+					Minimize();
 				}
+
+				UI::DrawButtonImage(m_IconMinimize, buttonColN, buttonColH, buttonColP, UI::RectExpanded(UI::GetItemRect(), 0.0f, -padY));
 			}
 
-			UI::DrawButtonImage(m_IconMinimize, buttonColN, buttonColH, buttonColP, UI::RectExpanded(UI::GetItemRect(), 0.0f, -padY));
-		}
-
-
-		// Maximize Button
-		ImGui::Spring(-1.0f, 17.0f);
-		UI::ShiftCursorY(8.0f);
-		{
-			const int iconWidth = m_IconMaximize->GetWidth();
-			const int iconHeight = m_IconMaximize->GetHeight();
-
-			const bool isMaximized = IsMaximized();
-
-			if (ImGui::InvisibleButton("Maximize", ImVec2(buttonWidth, buttonHeight)))
+			// Maximize Button
+			ImGui::Spring(-1.0f, 17.0f);
+			UI::ShiftCursorY(8.0f);
 			{
-				Application::Get().QueueEvent([isMaximized, windowHandle = m_WindowHandle]()
+				const int iconWidth = m_IconMaximize->GetWidth();
+				const int iconHeight = m_IconMaximize->GetHeight();
+
+				if (ImGui::InvisibleButton("Maximize", ImVec2(buttonWidth, buttonHeight)))
 				{
-					if (isMaximized)
-						glfwRestoreWindow(windowHandle);
-					else
-						glfwMaximizeWindow(windowHandle);
-				});
+					ToggleMaximize();
+				}
+
+				UI::DrawButtonImage(isMaximized ? m_IconRestore : m_IconMaximize, buttonColN, buttonColH, buttonColP);
 			}
 
-			UI::DrawButtonImage(isMaximized ? m_IconRestore : m_IconMaximize, buttonColN, buttonColH, buttonColP);
+			// Close Button
+			ImGui::Spring(-1.0f, 15.0f);
+			UI::ShiftCursorY(8.0f);
+			{
+				const int iconWidth = m_IconClose->GetWidth();
+				const int iconHeight = m_IconClose->GetHeight();
+				if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
+				{
+					Close();
+				}
+
+				UI::DrawButtonImage(m_IconClose, UI::Colors::Theme::text, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::text, 1.4f), buttonColP);
+			}
+
+			ImGui::Spring(-1.0f, 18.0f);
 		}
 
-		// Close Button
-		ImGui::Spring(-1.0f, 15.0f);
-		UI::ShiftCursorY(8.0f);
-		{
-			const int iconWidth = m_IconClose->GetWidth();
-			const int iconHeight = m_IconClose->GetHeight();
-			if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
-				Application::Get().Close();
-
-			UI::DrawButtonImage(m_IconClose, UI::Colors::Theme::text, UI::Colors::ColorWithMultipliedValue(UI::Colors::Theme::text, 1.4f), buttonColP);
-		}
-
-		ImGui::Spring(-1.0f, 18.0f);
 		ImGui::EndHorizontal();
 
 		outTitlebarHeight = titlebarHeight;
@@ -1025,9 +1054,38 @@ namespace Walnut {
 		m_MenubarCallback = menubarCallback;
 	}
 
+	void Application::SetDrawLogoCallback(const std::function<void(ImVec2 min, ImVec2 max)>& drawLogoCallback)
+	{
+		m_DrawLogoCallback = drawLogoCallback;
+	}
+
+	void Application::SetDrawWindowButtonsCallback(const std::function<void(ImVec2, ImVec2)>& drawWindowButtonsCallback)
+	{
+		m_DrawWindowButtonsCallback = drawWindowButtonsCallback;
+	}
+
 	void Application::Close()
 	{
 		m_Running = false;
+	}
+
+	void Application::ToggleMaximize()
+	{
+		QueueEvent([isMaximized = IsMaximized(), windowHandle = m_WindowHandle]()
+		{
+			if (isMaximized)
+				glfwRestoreWindow(windowHandle);
+			else
+				glfwMaximizeWindow(windowHandle);
+		});
+	}
+
+	void Application::Minimize()
+	{
+		if (m_WindowHandle)
+		{
+			QueueEvent([windowHandle = m_WindowHandle]() { glfwIconifyWindow(windowHandle); });
+		}
 	}
 
 	bool Application::IsMaximized() const

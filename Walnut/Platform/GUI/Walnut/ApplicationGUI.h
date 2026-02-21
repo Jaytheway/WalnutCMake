@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <filesystem>
+#include <span>
 
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -28,7 +29,17 @@ namespace Walnut {
 		uint32_t Width = 1600;
 		uint32_t Height = 900;
 
+		// Icon used for taskbar and native titlebar
 		std::filesystem::path IconPath;
+
+		// If IconPath is not provided, or the file
+		// does not exist, icon will be attempted to
+		// get loaded from IconData.
+		// Format must be suitable for glfwSetWindowIcon:
+		//	little-endian; RGBA; aspect ratio square;
+		//	Width & Height will be implied from the 
+		//	size of the data.
+		std::span<const unsigned char> IconData;
 
 		bool WindowResizeable = true;
 
@@ -43,6 +54,20 @@ namespace Walnut {
 		// Window will be created in the center
 		// of primary monitor
 		bool CenterWindow = false;
+
+		// Settings file to store imgui settings.
+		// Can be relative to working directory.
+		std::string SettingsFile = "imgui.ini";
+
+		// Settings data that will be loaded if
+		// settings file wasn't found.
+		// If nullptr, new file will be created
+		// in the working directory.
+		// This data can be created by calling
+		// ImGui::SaveIniSettingsToMemory(),
+		// or emedding contents of an existing
+		// settings file into a string literal.
+		const char* DefaultSettingsData = nullptr;
 	};
 
 	class Application
@@ -55,6 +80,8 @@ namespace Walnut {
 
 		void Run();
 		void SetMenubarCallback(const std::function<void()>& menubarCallback);
+		void SetDrawLogoCallback(const std::function<void(ImVec2 titlebarMin, ImVec2 titlebarMax)>& drawLogoCallback);
+		void SetDrawWindowButtonsCallback(const std::function<void(ImVec2 titlebarMin, ImVec2 titlebarMax)>& drawWindowButtonsCallback);
 
 		template<typename T>
 		void PushLayer()
@@ -68,6 +95,8 @@ namespace Walnut {
 		const std::vector<std::shared_ptr<Layer>>& GetLayerStack() const { return m_LayerStack; }
 
 		void Close();
+		void ToggleMaximize();
+		void Minimize();
 
 		bool IsMaximized() const;
 		std::shared_ptr<Image> GetApplicationIcon() const { return m_AppHeaderIcon; }
@@ -115,6 +144,8 @@ namespace Walnut {
 
 		std::vector<std::shared_ptr<Layer>> m_LayerStack;
 		std::function<void()> m_MenubarCallback;
+		std::function<void(ImVec2, ImVec2)> m_DrawLogoCallback;
+		std::function<void(ImVec2, ImVec2)> m_DrawWindowButtonsCallback;
 
 		std::mutex m_EventQueueMutex;
 		std::queue<std::function<void()>> m_EventQueue;
