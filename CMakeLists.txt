@@ -60,6 +60,8 @@ function(walnut_apply_defines tgt)
     $<$<CONFIG:Release>:WL_RELEASE>
     $<$<CONFIG:RelWithDebInfo>:WL_RELEASE>
     $<$<CONFIG:MinSizeRel>:WL_DIST>
+    $<$<CONFIG:Distribution>:WL_DIST>
+    $<$<CONFIG:Profile>:WL_RELEASE>
   )
 endfunction()
 
