@@ -30,9 +30,15 @@ namespace Walnut {
 		uint32_t GetHeight() const { return m_Height; }
 
 		static void* Decode(const void* data, uint64_t length, uint32_t& outWidth, uint32_t& outHeight);
+
+		static uint32_t GetDimensionLimit();
+
 	private:
 		void AllocateMemory(uint64_t size);
 		void Release();
+
+		static bool CheckDimensionsValidity(uint32_t width, uint32_t height);
+
 	private:
 		uint32_t m_Width = 0, m_Height = 0;
 

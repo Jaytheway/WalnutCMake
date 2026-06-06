@@ -8,6 +8,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <cstdio>
+
 namespace Walnut {
 
 	namespace Utils {
@@ -67,17 +69,24 @@ namespace Walnut {
 		m_Width = width;
 		m_Height = height;
 		
-		AllocateMemory(m_Width * m_Height * Utils::BytesPerPixel(m_Format));
-		SetData(data);
+		if (CheckDimensionsValidity(width, height))
+		{
+			AllocateMemory(m_Width * m_Height * Utils::BytesPerPixel(m_Format));
+			SetData(data);
+		}
+
 		stbi_image_free(data);
 	}
 
 	Image::Image(uint32_t width, uint32_t height, ImageFormat format, const void* data)
 		: m_Width(width), m_Height(height), m_Format(format)
 	{
-		AllocateMemory(m_Width * m_Height * Utils::BytesPerPixel(m_Format));
-		if (data)
-			SetData(data);
+		if (CheckDimensionsValidity(width, height))
+		{
+			AllocateMemory(m_Width * m_Height * Utils::BytesPerPixel(m_Format));
+			if (data)
+				SetData(data);
+		}
 	}
 
 	Image::~Image()
@@ -279,7 +288,8 @@ namespace Walnut {
 		if (m_Image && m_Width == width && m_Height == height)
 			return;
 
-		// TODO: max size?
+		if (not CheckDimensionsValidity(width, height))
+			return;
 
 		m_Width = width;
 		m_Height = height;
@@ -301,6 +311,32 @@ namespace Walnut {
 		outHeight = height;
 
 		return data;
+	}
+
+	uint32_t Image::GetDimensionLimit()
+	{
+		VkPhysicalDeviceProperties properties;
+		vkGetPhysicalDeviceProperties(Application::GetPhysicalDevice(), &properties);
+		return properties.limits.maxImageDimension2D;
+	}
+
+	bool Image::CheckDimensionsValidity(uint32_t width, uint32_t height)
+	{
+		const uint32_t dimLimit = GetDimensionLimit();
+		
+		if (width > dimLimit)
+		{
+			printf("Walnut::Image: Error: Requested width [%d] exceeds max GPU limit of %d\n", width, dimLimit);
+			return false;
+		}
+
+		if (height > dimLimit)
+		{
+			printf("Walnut::Image: Error: Requested height [%d] exceeds max GPU limit of %d\n", height, dimLimit);
+			return false;
+		}
+
+		return true;
 	}
 
 }
