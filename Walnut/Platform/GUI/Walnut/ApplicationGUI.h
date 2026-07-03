@@ -11,6 +11,7 @@
 #include <functional>
 #include <filesystem>
 #include <span>
+#include <utility>
 
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -105,6 +106,10 @@ namespace Walnut {
 		GLFWwindow* GetWindowHandle() const { return m_WindowHandle; }
 		bool IsTitleBarHovered() const { return m_TitleBarHovered; }
 
+		// @returns size of the window without decorations that can be serialized
+		// and passed on next application start via `ApplicationSpecification`
+		std::pair<int, int> GetWindowClientSize() const;
+
 		static VkInstance GetInstance();
 		static VkPhysicalDevice GetPhysicalDevice();
 		static VkDevice GetDevice();
@@ -131,6 +136,8 @@ namespace Walnut {
 		// For custom titlebars
 		void UI_DrawTitlebar(float& outTitlebarHeight);
 		void UI_DrawMenubar();
+
+		void CacheWindowClientSize(int width, int height);
 	private:
 		ApplicationSpecification m_Specification;
 		GLFWwindow* m_WindowHandle = nullptr;
@@ -158,6 +165,10 @@ namespace Walnut {
 		std::shared_ptr<Walnut::Image> m_IconMinimize;
 		std::shared_ptr<Walnut::Image> m_IconMaximize;
 		std::shared_ptr<Walnut::Image> m_IconRestore;
+
+		// Window size without decorations that can be serialized
+		int m_WindowWidth = 0;
+		int m_WindowHeight = 0;
 	};
 
 	// Implemented by CLIENT

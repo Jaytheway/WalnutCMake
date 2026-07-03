@@ -478,6 +478,14 @@ namespace Walnut {
 		
 		glfwShowWindow(m_WindowHandle);
 
+		// Store window size for serialization
+		glfwSetWindowSizeCallback(m_WindowHandle, [](GLFWwindow* window, int width, int height)
+		{
+			Application* app = (Application*)glfwGetWindowUserPointer(window);
+			if (not app->IsMaximized())
+				app->CacheWindowClientSize(width, height);
+		});
+
 		// Setup Vulkan
 		if (!glfwVulkanSupported())
 		{
@@ -1096,6 +1104,27 @@ namespace Walnut {
 	float Application::GetTime()
 	{
 		return (float)glfwGetTime();
+	}
+
+
+	void Application::CacheWindowClientSize(int width, int height)
+	{
+#ifdef WL_PLATFORM_WINDOWS // This may not be the same on other OSs
+		// Get the padding Windows appended for the frame decorations
+		int left, top, right, bottom;
+		glfwGetWindowFrameSize(m_WindowHandle, &left, &top, &right, &bottom);
+
+		// Subtract the frame sizes to get the pure base window size
+		width -= (left + right) >> 1; // half borders
+		height -= top + (bottom >> 1); // title bar + half bottom border
+#endif
+		m_WindowWidth = width;
+		m_WindowHeight = height;
+	}
+
+	std::pair<int, int> Application::GetWindowClientSize() const
+	{
+		return { m_WindowWidth, m_WindowHeight };
 	}
 
 	VkInstance Application::GetInstance()
