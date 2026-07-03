@@ -479,6 +479,8 @@ namespace Walnut {
 		glfwShowWindow(m_WindowHandle);
 
 		// Store window size for serialization
+		m_WindowWidth = m_Specification.Width;
+		m_WindowHeight = m_Specification.Height;
 		glfwSetWindowSizeCallback(m_WindowHandle, [](GLFWwindow* window, int width, int height)
 		{
 			Application* app = (Application*)glfwGetWindowUserPointer(window);
