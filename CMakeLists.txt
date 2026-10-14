@@ -49,6 +49,12 @@ target_compile_definitions(ImGui PUBLIC
   GLFW_INCLUDE_NONE
 )
 
+# ImGui's GLFW backend calls Xlib directly for multi-viewport windows.
+if(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+    target_link_libraries(ImGui PUBLIC X11::X11)
+endif()
+
 # ---- Common defines like Premake filters
 function(walnut_apply_defines tgt)
   if (WIN32)
